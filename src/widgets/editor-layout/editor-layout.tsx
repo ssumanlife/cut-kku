@@ -33,6 +33,7 @@ const MOBILE_TABS: { id: MobilePanelTab; icon: string; label: string }[] = [
 
 export const EditorLayout = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const rightCanvasRef = useRef<HTMLDivElement>(null);
   const frameType = useEditorStore((s) => s.frameType);
   const [activeTab, setActiveTab] = useState<MobilePanelTab>("frame");
   const [isPanelOpen, setIsPanelOpen] = useState(true);
@@ -66,7 +67,7 @@ export const EditorLayout = () => {
         </div>
 
         <div className="p-4 border-t border-gray-100">
-          <DownloadButton canvasRef={canvasRef} variant="sidebar" />
+          <DownloadButton canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} variant="sidebar" />
         </div>
       </aside>
 
@@ -78,14 +79,14 @@ export const EditorLayout = () => {
             나만의 포토부스 프레임
           </p>
         </div>
-        <DownloadButton canvasRef={canvasRef} variant="mobile" />
+        <DownloadButton canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} variant="mobile" />
       </header>
 
       {/* ── 캔버스 영역 ── */}
       <main className="flex-1 flex flex-col items-center md:justify-center bg-[#f5f0eb] overflow-y-auto p-4 md:p-6 min-h-0">
         <div className="flex flex-col items-center gap-3 w-full">
           <div className="w-full">
-            <FrameCanvas canvasRef={canvasRef} />
+            <FrameCanvas canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} />
           </div>
           <p className="text-[11px] md:text-xs text-gray-400 text-center whitespace-nowrap">
             {CANVAS_HINT[frameType]}
@@ -130,7 +131,7 @@ export const EditorLayout = () => {
             </button>
           ))}
           <div className="w-px h-8 bg-gray-200 shrink-0" />
-          <DownloadButton canvasRef={canvasRef} variant="mobile" />
+          <DownloadButton canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} variant="mobile" />
         </nav>
       </div>
     </div>

@@ -7,18 +7,19 @@ import { StripWrapper } from './strip-wrapper'
 import { TextLayerItem } from './text-layer-item'
 import { StickerLayerItem } from './sticker-layer-item'
 
-// Tailwind md 브레이크포인트 = 768px
 const MD_BREAKPOINT = 768
-// 캔버스 영역 좌우 패딩 (p-4 = 16px × 2)
 const CANVAS_PADDING = 32
 
 interface FrameCanvasProps {
   canvasRef?: React.RefObject<HTMLDivElement | null>
+  rightCanvasRef?: React.RefObject<HTMLDivElement | null>
 }
 
-export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
+export const FrameCanvas = ({ canvasRef, rightCanvasRef }: FrameCanvasProps) => {
   const internalRef = useRef<HTMLDivElement>(null)
+  const internalRightRef = useRef<HTMLDivElement>(null)
   const ref = canvasRef ?? internalRef
+  const rRef = rightCanvasRef ?? internalRightRef
 
   const [isMobile, setIsMobile] = useState(false)
   const [mobileVW, setMobileVW] = useState(0)
@@ -55,7 +56,6 @@ export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
   const { width: fixedPw, height: fixedPh } = STRIP_PREVIEW_SIZE[frameType]
   const stripCount = isDuplicated ? 2 : 1
 
-  // 모바일: 뷰포트 너비 기준 스케일 / md+: STRIP_PREVIEW_SIZE 고정값
   const scale = isMobile
     ? (mobileVW - CANVAS_PADDING) / (sw * stripCount)
     : fixedPw / sw
@@ -71,17 +71,29 @@ export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
     transform: `scale(${scale})`,
   }
 
-  const interactiveLayers = (
+  // 왼쪽 strip: 텍스트·스티커 모두 interactive
+  const leftLayers = (
     <>
-      {texts.map((t) => <TextLayerItem key={t.id} text={t} scale={scale} canvasRef={ref} interactive />)}
-      {stickers.map((s) => <StickerLayerItem key={s.id} sticker={s} scale={scale} interactive />)}
+      {texts.map((t) => (
+        <TextLayerItem key={t.id} text={t} scale={scale} canvasRef={ref} interactive />
+      ))}
+      {stickers.map((s) => (
+        <StickerLayerItem key={s.id} sticker={s} scale={scale} interactive stripOffsetX={0} />
+      ))}
     </>
   )
 
-  const cloneLayers = (
+  // 오른쪽 strip (A/B):
+  // - 텍스트: interactive={true}, 위치 공유(미러) — 어느 쪽에서 드래그해도 같이 이동
+  // - 스티커: interactive={true}, stripOffsetX={sw} — 전체 2000px 캔버스 중 오른쪽 1000px 영역 표시
+  const rightLayers = (
     <>
-      {texts.map((t) => <TextLayerItem key={t.id} text={t} scale={scale} canvasRef={ref} interactive={false} />)}
-      {stickers.map((s) => <StickerLayerItem key={s.id} sticker={s} scale={scale} interactive={false} />)}
+      {texts.map((t) => (
+        <TextLayerItem key={`r-${t.id}`} text={t} scale={scale} canvasRef={ref} interactive />
+      ))}
+      {stickers.map((s) => (
+        <StickerLayerItem key={`r-${s.id}`} sticker={s} scale={scale} interactive stripOffsetX={sw} />
+      ))}
     </>
   )
 
@@ -90,7 +102,7 @@ export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
   return (
     <div className="w-full flex justify-center">
       <div style={{ width: totalPreviewWidth, height: ph }} className="relative flex shrink-0">
-        {/* 왼쪽: 편집 가능 스트립 */}
+        {/* 왼쪽: 편집 가능 strip */}
         <StripWrapper width={pw} height={ph}>
           <div
             ref={ref}
@@ -99,22 +111,21 @@ export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
             onClick={handleCanvasClick}
           >
             <StripContent type={frameType} slots={slots} backgroundColor={backgroundColor} interactive />
-            {interactiveLayers}
+            {leftLayers}
           </div>
         </StripWrapper>
 
-        {/* 오른쪽: 읽기 전용 복제 스트립 (A/B 전용) */}
+        {/* 오른쪽: A/B 전용 — 이미지 슬롯은 읽기 전용, 텍스트·스티커는 양방향 편집 */}
         {isDuplicated && (
           <StripWrapper width={pw} height={ph}>
             <div
-              className="absolute top-0 left-0 origin-top-left overflow-hidden shadow-xl pointer-events-none"
+              ref={rRef}
+              className="absolute top-0 left-0 origin-top-left overflow-hidden shadow-xl"
               style={stripStyle}
+              onClick={handleCanvasClick}
             >
               <StripContent type={frameType} slots={slots} backgroundColor={backgroundColor} interactive={false} />
-              {cloneLayers}
-            </div>
-            <div className="absolute inset-0 flex items-end justify-center pb-2 pointer-events-none">
-              <span className="text-[10px] text-black/20 select-none">복제본</span>
+              {rightLayers}
             </div>
           </StripWrapper>
         )}

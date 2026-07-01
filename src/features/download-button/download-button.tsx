@@ -6,6 +6,7 @@ import { useEditorStore, STRIP_DIMENSIONS, FRAME_DUPLICATES } from '@entities/fr
 
 interface Props {
   canvasRef: React.RefObject<HTMLDivElement | null>
+  rightCanvasRef?: React.RefObject<HTMLDivElement | null>
   variant?: 'sidebar' | 'mobile'
 }
 
@@ -24,7 +25,37 @@ const imgToDataUrl = (src: string): Promise<string> =>
     img.src = src
   })
 
-export const DownloadButton = ({ canvasRef, variant = 'sidebar' }: Props) => {
+const prepareAndCapture = async (el: HTMLDivElement, sw: number, sh: number): Promise<HTMLCanvasElement> => {
+  // blob: URL → data URL 사전 변환
+  const imgs = Array.from(el.querySelectorAll('img'))
+  const origSrcs = imgs.map((img) => img.getAttribute('src') ?? '')
+  await Promise.all(
+    imgs.map(async (img, i) => {
+      const src = origSrcs[i]
+      if (!src) return
+      try { img.src = await imgToDataUrl(src) } catch { /* 원본 유지 */ }
+    })
+  )
+
+  // transform 제거 후 캡처
+  const origTransform = el.style.transform
+  const origOrigin = el.style.transformOrigin
+  el.style.transform = 'none'
+  el.style.transformOrigin = 'top left'
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+
+  let captured: HTMLCanvasElement
+  try {
+    captured = await toCanvas(el, { pixelRatio: 1, width: sw, height: sh, skipFonts: true })
+  } finally {
+    el.style.transform = origTransform
+    el.style.transformOrigin = origOrigin
+    imgs.forEach((img, i) => { if (origSrcs[i]) img.src = origSrcs[i] })
+  }
+  return captured
+}
+
+export const DownloadButton = ({ canvasRef, rightCanvasRef, variant = 'sidebar' }: Props) => {
   const frameType = useEditorStore((s) => s.frameType)
   const setSelectedTextId = useEditorStore((s) => s.actions.setSelectedTextId)
   const setSelectedStickerId = useEditorStore((s) => s.actions.setSelectedStickerId)
@@ -39,53 +70,26 @@ export const DownloadButton = ({ canvasRef, variant = 'sidebar' }: Props) => {
 
     setSelectedTextId(null)
     setSelectedStickerId(null)
-
     await new Promise((r) => setTimeout(r, 80))
 
-    const el = canvasRef.current
-    const imgs = Array.from(el.querySelectorAll('img'))
-    const origSrcs = imgs.map((img) => img.getAttribute('src') ?? '')
-
-    // blob: URL → data URL로 사전 변환 (html-to-image가 blob을 못 읽는 문제 해결)
-    await Promise.all(
-      imgs.map(async (img, i) => {
-        const src = origSrcs[i]
-        if (!src) return
-        try {
-          img.src = await imgToDataUrl(src)
-        } catch {
-          // 변환 실패 시 원본 유지
-        }
-      })
-    )
-
-    // transform: scale(n) 을 잠시 제거해야 html-to-image가 원본 해상도로 캡처함
-    const origTransform = el.style.transform
-    const origTransformOrigin = el.style.transformOrigin
-    el.style.transform = 'none'
-    el.style.transformOrigin = 'top left'
-    // 두 프레임 기다려 레이아웃 재계산 완료 후 캡처
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
-
     try {
-      const captured = await toCanvas(el, {
-        pixelRatio: 1,
-        width: sw,
-        height: sh,
-        skipFonts: true,
-      })
-
       let output: HTMLCanvasElement
 
-      if (isDuplicated) {
+      if (isDuplicated && rightCanvasRef?.current) {
+        // A/B: 왼쪽·오른쪽 각각 캡처 → 2000×3000으로 합치기
+        const [leftCanvas, rightCanvas] = await Promise.all([
+          prepareAndCapture(canvasRef.current, sw, sh),
+          prepareAndCapture(rightCanvasRef.current, sw, sh),
+        ])
         output = document.createElement('canvas')
         output.width = sw * 2
         output.height = sh
         const ctx = output.getContext('2d')!
-        ctx.drawImage(captured, 0, 0)
-        ctx.drawImage(captured, sw, 0)
+        ctx.drawImage(leftCanvas, 0, 0)
+        ctx.drawImage(rightCanvas, sw, 0)
       } else {
-        output = captured
+        // C type 또는 단일 strip
+        output = await prepareAndCapture(canvasRef.current, sw, sh)
       }
 
       output.toBlob((blob) => {
@@ -100,13 +104,6 @@ export const DownloadButton = ({ canvasRef, variant = 'sidebar' }: Props) => {
     } catch (err) {
       console.error('다운로드 실패:', err)
     } finally {
-      // transform 복원
-      el.style.transform = origTransform
-      el.style.transformOrigin = origTransformOrigin
-      // 원본 src 복원
-      imgs.forEach((img, i) => {
-        if (origSrcs[i]) img.src = origSrcs[i]
-      })
       setLoading(false)
     }
   }
