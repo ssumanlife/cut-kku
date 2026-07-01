@@ -5,6 +5,7 @@ import { FrameCanvas } from "@widgets/frame-canvas";
 import { FrameTypeSelector } from "@features/frame-type-selector";
 import { FilterSelector } from "@features/filter-selector";
 import { BackgroundColorPicker } from "@features/background-color-picker";
+import { TextEditor } from "@features/text-editor";
 import { useEditorStore } from "@entities/frame";
 
 const CANVAS_HINT: Record<string, string> = {
@@ -58,7 +59,7 @@ export const EditorLayout = () => {
           <FrameTypeSelector />
           <BackgroundColorPicker />
           <FilterSelector />
-          <div id="panel-text" />
+          <TextEditor />
           <div id="panel-sticker" />
         </div>
 
@@ -104,7 +105,7 @@ export const EditorLayout = () => {
             {activeTab === "frame" && <FrameTypeSelector />}
             {activeTab === "background" && <BackgroundColorPicker />}
             {activeTab === "filter" && <FilterSelector />}
-            {activeTab === "text" && <div id="panel-text-mobile" />}
+            {activeTab === "text" && <TextEditor />}
             {activeTab === "sticker" && <div id="panel-sticker-mobile" />}
           </div>
         )}

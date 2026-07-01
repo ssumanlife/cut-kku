@@ -66,7 +66,7 @@ export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
 
   const layers = (
     <>
-      {texts.map((t) => <TextLayerItem key={t.id} text={t} />)}
+      {texts.map((t) => <TextLayerItem key={t.id} text={t} scale={scale} canvasRef={ref} />)}
       {stickers.map((s) => <StickerLayerItem key={s.id} sticker={s} />)}
     </>
   )
