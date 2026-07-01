@@ -42,6 +42,13 @@ export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
   const slots = useEditorStore((s) => s.slots)
   const texts = useEditorStore((s) => s.texts)
   const stickers = useEditorStore((s) => s.stickers)
+  const setSelectedTextId = useEditorStore((s) => s.actions.setSelectedTextId)
+  const setSelectedStickerId = useEditorStore((s) => s.actions.setSelectedStickerId)
+
+  const handleCanvasClick = () => {
+    setSelectedTextId(null)
+    setSelectedStickerId(null)
+  }
 
   const isDuplicated = FRAME_DUPLICATES[frameType] === 2
   const { width: sw, height: sh } = STRIP_DIMENSIONS[frameType]
@@ -64,10 +71,17 @@ export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
     transform: `scale(${scale})`,
   }
 
-  const layers = (
+  const interactiveLayers = (
     <>
-      {texts.map((t) => <TextLayerItem key={t.id} text={t} scale={scale} canvasRef={ref} />)}
-      {stickers.map((s) => <StickerLayerItem key={s.id} sticker={s} />)}
+      {texts.map((t) => <TextLayerItem key={t.id} text={t} scale={scale} canvasRef={ref} interactive />)}
+      {stickers.map((s) => <StickerLayerItem key={s.id} sticker={s} scale={scale} interactive />)}
+    </>
+  )
+
+  const cloneLayers = (
+    <>
+      {texts.map((t) => <TextLayerItem key={t.id} text={t} scale={scale} canvasRef={ref} interactive={false} />)}
+      {stickers.map((s) => <StickerLayerItem key={s.id} sticker={s} scale={scale} interactive={false} />)}
     </>
   )
 
@@ -82,9 +96,10 @@ export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
             ref={ref}
             className="absolute top-0 left-0 origin-top-left overflow-hidden shadow-xl"
             style={stripStyle}
+            onClick={handleCanvasClick}
           >
             <StripContent type={frameType} slots={slots} backgroundColor={backgroundColor} interactive />
-            {layers}
+            {interactiveLayers}
           </div>
         </StripWrapper>
 
@@ -96,7 +111,7 @@ export const FrameCanvas = ({ canvasRef }: FrameCanvasProps) => {
               style={stripStyle}
             >
               <StripContent type={frameType} slots={slots} backgroundColor={backgroundColor} interactive={false} />
-              {layers}
+              {cloneLayers}
             </div>
             <div className="absolute inset-0 flex items-end justify-center pb-2 pointer-events-none">
               <span className="text-[10px] text-black/20 select-none">복제본</span>

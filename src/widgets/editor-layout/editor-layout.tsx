@@ -6,6 +6,7 @@ import { FrameTypeSelector } from "@features/frame-type-selector";
 import { FilterSelector } from "@features/filter-selector";
 import { BackgroundColorPicker } from "@features/background-color-picker";
 import { TextEditor } from "@features/text-editor";
+import { StickerPanel } from "@features/sticker-panel";
 import { useEditorStore } from "@entities/frame";
 
 const CANVAS_HINT: Record<string, string> = {
@@ -60,7 +61,7 @@ export const EditorLayout = () => {
           <BackgroundColorPicker />
           <FilterSelector />
           <TextEditor />
-          <div id="panel-sticker" />
+          <StickerPanel />
         </div>
 
         <div className="p-4 border-t border-gray-100">
@@ -106,7 +107,7 @@ export const EditorLayout = () => {
             {activeTab === "background" && <BackgroundColorPicker />}
             {activeTab === "filter" && <FilterSelector />}
             {activeTab === "text" && <TextEditor />}
-            {activeTab === "sticker" && <div id="panel-sticker-mobile" />}
+            {activeTab === "sticker" && <StickerPanel />}
           </div>
         )}
 

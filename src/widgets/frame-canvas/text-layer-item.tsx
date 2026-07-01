@@ -8,9 +8,10 @@ interface TextLayerItemProps {
   text: TextLayer
   scale: number
   canvasRef: React.RefObject<HTMLDivElement | null>
+  interactive?: boolean
 }
 
-export const TextLayerItem = ({ text, scale, canvasRef }: TextLayerItemProps) => {
+export const TextLayerItem = ({ text, scale, canvasRef, interactive = true }: TextLayerItemProps) => {
   const updateText = useEditorStore((s) => s.actions.updateText)
   const setSelectedTextId = useEditorStore((s) => s.actions.setSelectedTextId)
   const selectedTextId = useEditorStore((s) => s.selectedTextId)
@@ -56,12 +57,13 @@ export const TextLayerItem = ({ text, scale, canvasRef }: TextLayerItemProps) =>
         fontFamily: text.font,
         fontSize: text.fontSize,
         color: text.color,
-        cursor: 'grab',
-        outline: isSelected ? '2px dashed rgba(236,72,153,0.5)' : 'none',
+        cursor: interactive ? 'grab' : 'default',
+        outline: isSelected && interactive ? '2px dashed rgba(236,72,153,0.5)' : 'none',
         padding: '2px 4px',
         touchAction: 'none',
       }}
-      onPointerDown={handlePointerDown}
+      onPointerDown={interactive ? handlePointerDown : undefined}
+      onClick={(e) => e.stopPropagation()}
     >
       {text.content}
     </div>
