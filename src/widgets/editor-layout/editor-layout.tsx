@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { FrameCanvas } from "@widgets/frame-canvas";
 import { FrameTypeSelector } from "@features/frame-type-selector";
 import { FilterSelector } from "@features/filter-selector";
+import { BackgroundColorPicker } from "@features/background-color-picker";
 import { useEditorStore } from "@entities/frame";
 
 const CANVAS_HINT: Record<string, string> = {
@@ -55,7 +56,7 @@ export const EditorLayout = () => {
 
         <div className="flex flex-col gap-5 p-4 flex-1 overflow-y-auto">
           <FrameTypeSelector />
-          <div id="panel-background-color" />
+          <BackgroundColorPicker />
           <FilterSelector />
           <div id="panel-text" />
           <div id="panel-sticker" />
@@ -101,9 +102,7 @@ export const EditorLayout = () => {
         {isPanelOpen && (
           <div className="px-4 py-3 overflow-y-auto max-h-52 border-b border-gray-100">
             {activeTab === "frame" && <FrameTypeSelector />}
-            {activeTab === "background" && (
-              <div id="panel-background-color-mobile" />
-            )}
+            {activeTab === "background" && <BackgroundColorPicker />}
             {activeTab === "filter" && <FilterSelector />}
             {activeTab === "text" && <div id="panel-text-mobile" />}
             {activeTab === "sticker" && <div id="panel-sticker-mobile" />}
