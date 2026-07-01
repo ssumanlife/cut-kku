@@ -7,6 +7,7 @@ import { FilterSelector } from "@features/filter-selector";
 import { BackgroundColorPicker } from "@features/background-color-picker";
 import { TextEditor } from "@features/text-editor";
 import { StickerPanel } from "@features/sticker-panel";
+import { DownloadButton } from "@features/download-button";
 import { useEditorStore } from "@entities/frame";
 
 const CANVAS_HINT: Record<string, string> = {
@@ -65,7 +66,7 @@ export const EditorLayout = () => {
         </div>
 
         <div className="p-4 border-t border-gray-100">
-          <div id="panel-download" />
+          <DownloadButton canvasRef={canvasRef} variant="sidebar" />
         </div>
       </aside>
 
@@ -77,7 +78,7 @@ export const EditorLayout = () => {
             나만의 포토부스 프레임
           </p>
         </div>
-        <div id="mobile-header-download" />
+        <DownloadButton canvasRef={canvasRef} variant="mobile" />
       </header>
 
       {/* ── 캔버스 영역 ── */}
@@ -129,7 +130,7 @@ export const EditorLayout = () => {
             </button>
           ))}
           <div className="w-px h-8 bg-gray-200 shrink-0" />
-          <div id="panel-download-mobile" className="px-3 flex items-center" />
+          <DownloadButton canvasRef={canvasRef} variant="mobile" />
         </nav>
       </div>
     </div>
