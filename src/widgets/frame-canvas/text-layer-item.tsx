@@ -50,7 +50,7 @@ export const TextLayerItem = ({ text, scale, canvasRef, interactive = true }: Te
 
   return (
     <div
-      className="absolute select-none whitespace-pre"
+      className="absolute select-none whitespace-pre z-10"
       style={{
         left: text.x,
         top: text.y,

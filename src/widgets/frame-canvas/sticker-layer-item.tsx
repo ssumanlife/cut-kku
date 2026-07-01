@@ -116,7 +116,7 @@ export const StickerLayerItem = ({
 
   return (
     <div
-      className="absolute select-none"
+      className="absolute select-none z-10"
       style={{
         left: sticker.x,
         top: sticker.y,
