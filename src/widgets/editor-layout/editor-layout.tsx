@@ -8,6 +8,7 @@ import { BackgroundColorPicker } from "@features/background-color-picker";
 import { TextEditor } from "@features/text-editor";
 import { StickerPanel } from "@features/sticker-panel";
 import { DownloadButton } from "@features/download-button";
+import { ShareButton } from "@features/share-button";
 import { useEditorStore } from "@entities/frame";
 
 const CANVAS_HINT: Record<string, string> = {
@@ -66,8 +67,12 @@ export const EditorLayout = () => {
           <StickerPanel />
         </div>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-gray-100 flex flex-col gap-2">
           <DownloadButton canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} variant="sidebar" />
+          <ShareButton variant="sidebar" />
+          <p className="text-[10px] text-center text-gray-300 mt-1">
+            © 2026 Sumin. All rights reserved.
+          </p>
         </div>
       </aside>
 
@@ -79,7 +84,10 @@ export const EditorLayout = () => {
             나만의 포토부스 프레임
           </p>
         </div>
-        <DownloadButton canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} variant="mobile" />
+        <div className="flex items-center gap-1">
+          <ShareButton variant="mobile" />
+          <DownloadButton canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} variant="mobile" />
+        </div>
       </header>
 
       {/* ── 캔버스 영역 ── */}
@@ -98,11 +106,15 @@ export const EditorLayout = () => {
             )}
           </p>
         </div>
+
+        {/* 모바일 저작권 */}
+        <p className="md:hidden text-[10px] text-gray-300 mt-4">
+          © 2026 Sumin. All rights reserved.
+        </p>
       </main>
 
       {/* ── 모바일 하단 컨트롤 패널 (< md) ── */}
       <div className="md:hidden shrink-0 bg-white border-t border-gray-200">
-        {/* 패널 내용 영역 (열렸을 때만 표시) */}
         {isPanelOpen && (
           <div className="px-4 py-3 overflow-y-auto max-h-52 border-b border-gray-100">
             {activeTab === "frame" && <FrameTypeSelector />}
@@ -113,7 +125,6 @@ export const EditorLayout = () => {
           </div>
         )}
 
-        {/* 탭 바 */}
         <nav className="flex items-center">
           {MOBILE_TABS.map((tab) => (
             <button
