@@ -35,9 +35,9 @@ const birthday: BuiltinSticker[] = Array.from({ length: 29 }, (_, i) => ({
 }))
 
 export const STICKER_CATEGORIES: StickerCategory[] = [
-  { id: 'sanrio', label: '산리오', stickers: sanrio },
-  { id: 'wedding', label: '결혼', stickers: wedding },
   { id: 'birthday', label: '생일', stickers: birthday },
+  { id: 'wedding', label: '결혼', stickers: wedding },
+  { id: 'sanrio', label: '산리오', stickers: sanrio },
 ]
 
 // 기존 호환용

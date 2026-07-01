@@ -7,7 +7,7 @@ import { STICKER_CATEGORIES } from '@entities/sticker'
 export const StickerPanel = () => {
   const frameType = useEditorStore((s) => s.frameType)
   const addSticker = useEditorStore((s) => s.actions.addSticker)
-  const [activeCategory, setActiveCategory] = useState('sanrio')
+  const [activeCategory, setActiveCategory] = useState('birthday')
 
   const { width, height } = STRIP_DIMENSIONS[frameType]
 
