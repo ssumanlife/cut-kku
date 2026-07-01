@@ -126,6 +126,15 @@ export const EditorLayout = () => {
         )}
 
         <nav className="flex items-center">
+          <button
+            onClick={() => setIsPanelOpen((prev) => !prev)}
+            className="flex flex-col items-center justify-center gap-0.5 py-2.5 px-3 text-gray-400 hover:text-pink-400 transition-colors shrink-0"
+            aria-label={isPanelOpen ? "패널 닫기" : "패널 열기"}
+          >
+            <span className="text-base leading-none">{isPanelOpen ? "▼" : "▲"}</span>
+            <span className="text-[10px] leading-none">{isPanelOpen ? "닫기" : "열기"}</span>
+          </button>
+          <div className="w-px h-8 bg-gray-200 shrink-0" />
           {MOBILE_TABS.map((tab) => (
             <button
               key={tab.id}
