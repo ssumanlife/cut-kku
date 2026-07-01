@@ -4,7 +4,6 @@ export type ImageFilter = 'none' | 'grayscale' | 'warm' | 'cool'
 
 export interface ImageSlot {
   imageUrl: string | null
-  filter: ImageFilter
 }
 
 export interface TextLayer {

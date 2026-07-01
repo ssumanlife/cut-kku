@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { FrameCanvas } from "@widgets/frame-canvas";
 import { FrameTypeSelector } from "@features/frame-type-selector";
+import { FilterSelector } from "@features/filter-selector";
 import { useEditorStore } from "@entities/frame";
 
 const CANVAS_HINT: Record<string, string> = {
@@ -55,7 +56,7 @@ export const EditorLayout = () => {
         <div className="flex flex-col gap-5 p-4 flex-1 overflow-y-auto">
           <FrameTypeSelector />
           <div id="panel-background-color" />
-          <div id="panel-filter" />
+          <FilterSelector />
           <div id="panel-text" />
           <div id="panel-sticker" />
         </div>
@@ -103,7 +104,7 @@ export const EditorLayout = () => {
             {activeTab === "background" && (
               <div id="panel-background-color-mobile" />
             )}
-            {activeTab === "filter" && <div id="panel-filter-mobile" />}
+            {activeTab === "filter" && <FilterSelector />}
             {activeTab === "text" && <div id="panel-text-mobile" />}
             {activeTab === "sticker" && <div id="panel-sticker-mobile" />}
           </div>

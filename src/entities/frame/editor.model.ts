@@ -3,14 +3,16 @@ import type { FrameType, ImageFilter, ImageSlot, StickerLayer, TextLayer } from 
 import { FRAME_SLOT_COUNT } from './frame.types'
 
 const createDefaultSlots = (count: number): ImageSlot[] =>
-  Array.from({ length: count }, () => ({ imageUrl: null, filter: 'none' }))
+  Array.from({ length: count }, () => ({ imageUrl: null }))
 
 interface EditorState {
   frameType: FrameType
   backgroundColor: string
+  frameFilter: ImageFilter
   slots: ImageSlot[]
   texts: TextLayer[]
   stickers: StickerLayer[]
+  selectedSlotIndex: number | null
   selectedTextId: string | null
   selectedStickerId: string | null
 }
@@ -19,9 +21,10 @@ interface EditorActions {
   actions: {
     setFrameType: (type: FrameType) => void
     setBackgroundColor: (color: string) => void
+    setFrameFilter: (filter: ImageFilter) => void
     setSlotImage: (index: number, imageUrl: string) => void
-    setSlotFilter: (index: number, filter: ImageFilter) => void
     clearSlotImage: (index: number) => void
+    setSelectedSlotIndex: (index: number | null) => void
     addText: (text: Omit<TextLayer, 'id'>) => void
     updateText: (id: string, patch: Partial<Omit<TextLayer, 'id'>>) => void
     removeText: (id: string) => void
@@ -36,9 +39,11 @@ interface EditorActions {
 const defaultState: EditorState = {
   frameType: 'A',
   backgroundColor: '#ffffff',
+  frameFilter: 'none',
   slots: createDefaultSlots(FRAME_SLOT_COUNT['A']),
   texts: [],
   stickers: [],
+  selectedSlotIndex: null,
   selectedTextId: null,
   selectedStickerId: null,
 }
@@ -48,9 +53,11 @@ export const useEditorStore = create<EditorState & EditorActions>((set) => ({
 
   actions: {
     setFrameType: (frameType) =>
-      set({ frameType, slots: createDefaultSlots(FRAME_SLOT_COUNT[frameType]) }),
+      set({ frameType, frameFilter: 'none', slots: createDefaultSlots(FRAME_SLOT_COUNT[frameType]), selectedSlotIndex: null }),
 
     setBackgroundColor: (backgroundColor) => set({ backgroundColor }),
+
+    setFrameFilter: (frameFilter) => set({ frameFilter }),
 
     setSlotImage: (index, imageUrl) =>
       set((state) => {
@@ -59,19 +66,14 @@ export const useEditorStore = create<EditorState & EditorActions>((set) => ({
         return { slots }
       }),
 
-    setSlotFilter: (index, filter) =>
-      set((state) => {
-        const slots = [...state.slots]
-        slots[index] = { ...slots[index], filter }
-        return { slots }
-      }),
-
     clearSlotImage: (index) =>
       set((state) => {
         const slots = [...state.slots]
-        slots[index] = { imageUrl: null, filter: 'none' }
-        return { slots }
+        slots[index] = { imageUrl: null }
+        return { slots, selectedSlotIndex: state.selectedSlotIndex === index ? null : state.selectedSlotIndex }
       }),
+
+    setSelectedSlotIndex: (selectedSlotIndex) => set({ selectedSlotIndex }),
 
     addText: (text) =>
       set((state) => ({

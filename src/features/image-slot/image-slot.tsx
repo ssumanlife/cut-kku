@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEditorStore } from '@entities/frame'
-import type { ImageSlot } from '@entities/frame'
+import type { ImageFilter, ImageSlot } from '@entities/frame'
 import { IMAGE_FILTER_STYLE } from '@shared/lib/image-filter'
 
 interface ImageSlotProps {
@@ -14,9 +14,9 @@ interface ImageSlotProps {
 
 export const ImageSlotCell = ({ slot, index, interactive, style }: ImageSlotProps) => {
   const setSlotImage = useEditorStore((s) => s.actions.setSlotImage)
+  const frameFilter = useEditorStore((s) => s.frameFilter)
 
-  const handleClick = () => {
-    if (!interactive) return
+  const openFilePicker = () => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
@@ -32,10 +32,15 @@ export const ImageSlotCell = ({ slot, index, interactive, style }: ImageSlotProp
     <div
       style={style}
       className={`overflow-hidden group ${interactive ? 'cursor-pointer' : 'cursor-default'}`}
-      onClick={handleClick}
+      onClick={interactive ? openFilePicker : undefined}
     >
       {slot.imageUrl ? (
-        <FilledSlot imageUrl={slot.imageUrl} filter={slot.filter} interactive={interactive} index={index} />
+        <FilledSlot
+          imageUrl={slot.imageUrl}
+          frameFilter={frameFilter}
+          interactive={interactive}
+          index={index}
+        />
       ) : (
         <EmptySlot interactive={interactive} />
       )}
@@ -45,12 +50,12 @@ export const ImageSlotCell = ({ slot, index, interactive, style }: ImageSlotProp
 
 const FilledSlot = ({
   imageUrl,
-  filter,
+  frameFilter,
   interactive,
   index,
 }: {
   imageUrl: string
-  filter: ImageSlot['filter']
+  frameFilter: ImageFilter
   interactive: boolean
   index: number
 }) => (
@@ -60,13 +65,13 @@ const FilledSlot = ({
       alt={`슬롯 ${index + 1}`}
       fill
       className="object-cover"
-      style={{ filter: IMAGE_FILTER_STYLE[filter] }}
+      style={{ filter: IMAGE_FILTER_STYLE[frameFilter] }}
       draggable={false}
       unoptimized
     />
     {interactive && (
       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
-        <span className="text-white text-4xl font-medium">변경</span>
+        <span className="text-white text-2xl font-medium">변경</span>
       </div>
     )}
   </div>
