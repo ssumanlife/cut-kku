@@ -54,9 +54,7 @@ export const EditorLayout = () => {
       <aside className="hidden md:flex md:w-72 md:min-w-72 bg-white border-r border-gray-200 flex-col overflow-y-auto">
         <div className="p-4 border-b border-gray-100">
           <h1 className="text-lg font-bold text-pink-500">✂ 컷꾸</h1>
-          <p className="text-xs text-gray-400 mt-0.5">
-            나만의 포토부스 프레임 꾸미기
-          </p>
+          <p className="text-xs text-gray-400 mt-0.5">나만의 인생네컷 꾸미기</p>
         </div>
 
         <div className="flex flex-col gap-5 p-4 flex-1 overflow-y-auto">
@@ -68,7 +66,11 @@ export const EditorLayout = () => {
         </div>
 
         <div className="p-4 border-t border-gray-100 flex flex-col gap-2">
-          <DownloadButton canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} variant="sidebar" />
+          <DownloadButton
+            canvasRef={canvasRef}
+            rightCanvasRef={rightCanvasRef}
+            variant="sidebar"
+          />
           <ShareButton variant="sidebar" />
           <p className="text-[10px] text-center text-gray-300 mt-1">
             © 2026 Sumin. All rights reserved.
@@ -81,12 +83,16 @@ export const EditorLayout = () => {
         <div>
           <h1 className="text-base font-bold text-pink-500">✂ 컷꾸</h1>
           <p className="text-[10px] text-gray-400 leading-none mt-0.5">
-            나만의 포토부스 프레임
+            나만의 인생네컷 꾸미기
           </p>
         </div>
         <div className="flex items-center gap-1">
           <ShareButton variant="mobile" />
-          <DownloadButton canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} variant="mobile" />
+          <DownloadButton
+            canvasRef={canvasRef}
+            rightCanvasRef={rightCanvasRef}
+            variant="mobile"
+          />
         </div>
       </header>
 
@@ -94,7 +100,10 @@ export const EditorLayout = () => {
       <main className="flex-1 flex flex-col items-center md:justify-center bg-[#f5f0eb] overflow-y-auto p-4 md:p-6 min-h-0">
         <div className="flex flex-col items-center gap-3 w-full">
           <div className="w-full">
-            <FrameCanvas canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} />
+            <FrameCanvas
+              canvasRef={canvasRef}
+              rightCanvasRef={rightCanvasRef}
+            />
           </div>
           <p className="text-[11px] md:text-xs text-gray-400 text-center whitespace-nowrap">
             {CANVAS_HINT[frameType]}
@@ -131,8 +140,12 @@ export const EditorLayout = () => {
             className="flex flex-col items-center justify-center gap-0.5 py-2.5 px-3 text-gray-400 hover:text-pink-400 transition-colors shrink-0"
             aria-label={isPanelOpen ? "패널 닫기" : "패널 열기"}
           >
-            <span className="text-base leading-none">{isPanelOpen ? "▼" : "▲"}</span>
-            <span className="text-[10px] leading-none">{isPanelOpen ? "닫기" : "열기"}</span>
+            <span className="text-base leading-none">
+              {isPanelOpen ? "▼" : "▲"}
+            </span>
+            <span className="text-[10px] leading-none">
+              {isPanelOpen ? "닫기" : "열기"}
+            </span>
           </button>
           <div className="w-px h-8 bg-gray-200 shrink-0" />
           {MOBILE_TABS.map((tab) => (
@@ -151,7 +164,11 @@ export const EditorLayout = () => {
             </button>
           ))}
           <div className="w-px h-8 bg-gray-200 shrink-0" />
-          <DownloadButton canvasRef={canvasRef} rightCanvasRef={rightCanvasRef} variant="mobile" />
+          <DownloadButton
+            canvasRef={canvasRef}
+            rightCanvasRef={rightCanvasRef}
+            variant="mobile"
+          />
         </nav>
       </div>
     </div>
