@@ -56,6 +56,25 @@ const drawImageCover = (
   ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
 }
 
+// object-contain: 비율 유지하며 박스 안에 맞춤 (여백은 투명)
+const drawImageContain = (
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  dx: number, dy: number, dw: number, dh: number,
+) => {
+  const ir = img.naturalWidth / img.naturalHeight
+  const cr = dw / dh
+  let rw: number, rh: number
+  if (ir > cr) {
+    rw = dw; rh = dw / ir
+  } else {
+    rh = dh; rw = dh * ir
+  }
+  const ox = (dw - rw) / 2
+  const oy = (dh - rh) / 2
+  ctx.drawImage(img, dx + ox, dy + oy, rw, rh)
+}
+
 const getSlotRect = (frameType: FrameType, i: number) => {
   if (frameType === 'C') {
     const l = FRAME_LAYOUT['C']
@@ -168,7 +187,7 @@ const renderToCanvas = async (
     ctx.save()
     ctx.translate(cx, cy)
     ctx.rotate((s.rotate * Math.PI) / 180)
-    ctx.drawImage(img, -size / 2, -size / 2, size, size)
+    drawImageContain(ctx, img, -size / 2, -size / 2, size, size)
     ctx.restore()
   }
 
