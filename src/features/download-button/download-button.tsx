@@ -1,180 +1,221 @@
 'use client'
 
 import { useState } from 'react'
-import { toCanvas } from 'html-to-image'
-import { useEditorStore, STRIP_DIMENSIONS, FRAME_DUPLICATES } from '@entities/frame'
+import {
+  useEditorStore,
+  STRIP_DIMENSIONS,
+  FRAME_DUPLICATES,
+  FRAME_LAYOUT,
+  type FrameType,
+  type ImageSlot,
+  type StickerLayer,
+  type TextLayer,
+} from '@entities/frame'
+import { IMAGE_FILTER_STYLE } from '@shared/lib/image-filter'
 
 interface Props {
-  canvasRef: React.RefObject<HTMLDivElement | null>
+  canvasRef?: React.RefObject<HTMLDivElement | null>
   rightCanvasRef?: React.RefObject<HTMLDivElement | null>
   variant?: 'sidebar' | 'mobile'
 }
 
-const GOOGLE_FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Nanum+Gothic&family=Nanum+Myeongjo&family=Do+Hyeon&family=Black+Han+Sans&display=swap'
+const STICKER_BASE_SIZE = 120
+const C_SLOT_POSITIONS = [
+  { col: 0, row: 0 },
+  { col: 1, row: 0 },
+  { col: 0, row: 1 },
+  { col: 1, row: 1 },
+]
 
-let fontEmbedCSSCache: string | null = null
-
-const loadFontEmbedCSS = async (): Promise<string> => {
-  if (fontEmbedCSSCache) return fontEmbedCSSCache
-  try {
-    const cssResp = await fetch(GOOGLE_FONTS_URL)
-    let css = await cssResp.text()
-    const urlMatches = [...css.matchAll(/url\(([^)]+)\)/g)]
-    await Promise.all(
-      urlMatches.map(async ([fullMatch, rawUrl]) => {
-        const url = rawUrl.replace(/['"]/g, '')
-        try {
-          const fontResp = await fetch(url)
-          const blob = await fontResp.blob()
-          const base64 = await new Promise<string>((r) => {
-            const reader = new FileReader()
-            reader.onload = () => r(reader.result as string)
-            reader.readAsDataURL(blob)
-          })
-          css = css.replace(fullMatch, `url(${base64})`)
-        } catch { /* skip */ }
-      })
-    )
-    fontEmbedCSSCache = css
-    return css
-  } catch {
-    return ''
-  }
-}
-
-// blob URL에는 crossOrigin 설정 금지 (모바일 Safari 로드 차단)
-const imgToDataUrl = (src: string): Promise<string> => {
-  if (src.startsWith('data:')) return Promise.resolve(src)
-  return new Promise((resolve) => {
+const loadImg = (src: string): Promise<HTMLImageElement | null> =>
+  new Promise((resolve) => {
+    if (!src) { resolve(null); return }
     const img = new window.Image()
     if (!src.startsWith('blob:')) img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      try {
-        const c = document.createElement('canvas')
-        c.width = img.naturalWidth
-        c.height = img.naturalHeight
-        c.getContext('2d')!.drawImage(img, 0, 0)
-        resolve(c.toDataURL('image/png'))
-      } catch {
-        resolve(src)
-      }
-    }
-    img.onerror = () => resolve(src)
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    setTimeout(() => resolve(null), 8000)
     img.src = src
   })
+
+const drawImageCover = (
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  dx: number, dy: number, dw: number, dh: number,
+) => {
+  const ir = img.naturalWidth / img.naturalHeight
+  const cr = dw / dh
+  let sx: number, sy: number, sw: number, sh: number
+  if (ir > cr) {
+    sh = img.naturalHeight; sw = sh * cr
+    sx = (img.naturalWidth - sw) / 2; sy = 0
+  } else {
+    sw = img.naturalWidth; sh = sw / cr
+    sx = 0; sy = (img.naturalHeight - sh) / 2
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
 }
 
-const waitFrames = (n: number): Promise<void> =>
-  new Promise((resolve) => {
-    let count = 0
-    const tick = () => { if (++count >= n) resolve(); else requestAnimationFrame(tick) }
-    requestAnimationFrame(tick)
-  })
+const getSlotRect = (frameType: FrameType, i: number) => {
+  if (frameType === 'C') {
+    const l = FRAME_LAYOUT['C']
+    const { col, row } = C_SLOT_POSITIONS[i] ?? { col: 0, row: 0 }
+    return {
+      left: l.paddingX + col * (l.photoWidth + l.colGap),
+      top: l.paddingTop + row * (l.photoHeight + l.rowGap),
+      width: l.photoWidth,
+      height: l.photoHeight,
+    }
+  }
+  const l = FRAME_LAYOUT[frameType as 'A' | 'B']
+  return {
+    left: l.paddingX,
+    top: l.paddingTop + i * (l.photoHeight + l.gap),
+    width: l.photoWidth,
+    height: l.photoHeight,
+  }
+}
 
-const prepareAndCapture = async (
-  el: HTMLDivElement,
+const drawLogo = (
+  ctx: CanvasRenderingContext2D,
+  offsetX: number,
   sw: number,
   sh: number,
-  fontEmbedCSS: string,
-): Promise<HTMLCanvasElement> => {
-  // 1. 원본 요소의 img를 모두 dataURL로 변환 (blob URL 포함)
-  const imgs = Array.from(el.querySelectorAll<HTMLImageElement>('img'))
-  const origSrcs = imgs.map((img) => img.src)
+  paddingX: number,
+  paddingTop: number,
+) => {
+  const topFontSize = Math.round(paddingTop * 0.8)
+  const sideFontSize = Math.round(paddingX * 0.5)
+  ctx.save()
+  ctx.fillStyle = 'rgba(0,0,0,0.75)'
+  ctx.textBaseline = 'middle'
 
-  await Promise.all(
-    imgs.map(async (img, i) => {
-      const src = origSrcs[i]
-      if (!src) return
-      const dataUrl = await imgToDataUrl(src)
-      img.src = dataUrl
-      if (!img.complete) {
-        await new Promise<void>((r) => {
-          const done = () => r()
-          img.onload = done
-          img.onerror = done
-          setTimeout(done, 3000) // 최대 3초 대기
-        })
-      }
-    })
-  )
+  // 상단 수평 로고
+  ctx.font = `700 ${topFontSize}px "Arial Black", Arial`
+  ctx.textAlign = 'left'
+  ctx.fillText('CUTKKU', offsetX + paddingX, 16 + paddingTop / 2)
 
-  // 2. 힌트 숨기기
-  const hints = Array.from(el.querySelectorAll<HTMLElement>('[data-download-hide]'))
-  hints.forEach((h) => { h.style.visibility = 'hidden' })
-
-  // 3. 클론을 body에 position:fixed로 붙여 모바일 뷰포트 안에서 full-size 렌더링
-  //    (원본이 position:absolute + scale 상태면 모바일에서 클립되어 캡처 불완전)
-  const clone = el.cloneNode(true) as HTMLDivElement
-  Object.assign(clone.style, {
-    position: 'fixed',
-    top: '0',
-    left: '0',
-    width: `${sw}px`,
-    height: `${sh}px`,
-    transform: 'none',
-    transformOrigin: 'top left',
-    opacity: '0',
-    pointerEvents: 'none',
-    zIndex: '99999',
-    overflow: 'hidden',
-  })
-  document.body.appendChild(clone)
-
-  await waitFrames(8)
-
-  let captured: HTMLCanvasElement
-  try {
-    captured = await toCanvas(clone, {
-      pixelRatio: 1,
-      width: sw,
-      height: sh,
-      skipFonts: true,
-      fontEmbedCSS,
-      cacheBust: false,
-    })
-  } finally {
-    document.body.removeChild(clone)
-    imgs.forEach((img, i) => { if (origSrcs[i]) img.src = origSrcs[i] })
-    hints.forEach((h) => { h.style.visibility = '' })
-  }
-  return captured
+  // 우측 수직 로고 (2/6.7 지점)
+  ctx.font = `700 ${sideFontSize}px "Arial Black", Arial`
+  ctx.textAlign = 'center'
+  const rightLogoTop = Math.round((sh * 2) / 6.7)
+  ctx.translate(offsetX + sw - paddingX / 2, rightLogoTop)
+  ctx.rotate(Math.PI / 2)
+  ctx.fillText('CUTKKU', 0, 0)
+  ctx.restore()
 }
 
-export const DownloadButton = ({ canvasRef, rightCanvasRef, variant = 'sidebar' }: Props) => {
+const renderToCanvas = async (
+  frameType: FrameType,
+  backgroundColor: string,
+  filterKey: string,
+  slots: ImageSlot[],
+  stickers: StickerLayer[],
+  texts: TextLayer[],
+): Promise<HTMLCanvasElement> => {
+  const { width: sw, height: sh } = STRIP_DIMENSIONS[frameType]
+  const isDuplicated = FRAME_DUPLICATES[frameType] === 2
+  const totalWidth = isDuplicated ? sw * 2 : sw
+  const layout = FRAME_LAYOUT[frameType]
+  const { paddingX, paddingTop } = layout
+
+  const canvas = document.createElement('canvas')
+  canvas.width = totalWidth
+  canvas.height = sh
+  const ctx = canvas.getContext('2d')!
+
+  // drop-shadow는 canvas에서 제거 (다른 필터는 그대로 지원)
+  const canvasFilter = (IMAGE_FILTER_STYLE[filterKey as keyof typeof IMAGE_FILTER_STYLE] ?? 'none')
+    .replace(/drop-shadow\([^)]*\)/g, '').trim() || 'none'
+
+  // 슬롯 이미지 로드 (병렬)
+  const slotImgs = await Promise.all(slots.map((s) => (s.imageUrl ? loadImg(s.imageUrl) : Promise.resolve(null))))
+  // 스티커 이미지 로드 (병렬)
+  const stickerImgs = await Promise.all(stickers.map((s) => loadImg(s.src)))
+
+  // 텍스트 폰트 사전 로드
+  await Promise.all(
+    texts.map((t) =>
+      document.fonts.load(`${t.fontSize}px "${t.font}"`).catch(() => null)
+    )
+  )
+
+  const drawStrip = (offsetX: number) => {
+    // 1. 배경
+    ctx.fillStyle = backgroundColor
+    ctx.fillRect(offsetX, 0, sw, sh)
+
+    // 2. 사진 슬롯
+    for (let i = 0; i < slots.length; i++) {
+      const img = slotImgs[i]
+      if (!img) continue
+      const { left, top, width, height } = getSlotRect(frameType, i)
+      ctx.filter = canvasFilter
+      drawImageCover(ctx, img, offsetX + left, top, width, height)
+      ctx.filter = 'none'
+    }
+
+    // 3. CUTKKU 로고
+    drawLogo(ctx, offsetX, sw, sh, paddingX, paddingTop)
+  }
+
+  drawStrip(0)
+  if (isDuplicated) drawStrip(sw)
+
+  // 4. 스티커 (A/B: 전체 2000px 좌표계 그대로)
+  for (let i = 0; i < stickers.length; i++) {
+    const s = stickers[i]
+    const img = stickerImgs[i]
+    if (!img) continue
+    const size = STICKER_BASE_SIZE * s.scale
+    const cx = s.x + size / 2
+    const cy = s.y + size / 2
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate((s.rotate * Math.PI) / 180)
+    ctx.drawImage(img, -size / 2, -size / 2, size, size)
+    ctx.restore()
+  }
+
+  // 5. 텍스트 (A/B: 양쪽 스트립에 동일하게)
+  const drawTexts = (offsetX: number) => {
+    for (const t of texts) {
+      ctx.save()
+      ctx.font = `${t.fontSize}px "${t.font}", sans-serif`
+      ctx.fillStyle = t.color
+      ctx.textBaseline = 'top'
+      ctx.fillText(t.content, offsetX + t.x, t.y)
+      ctx.restore()
+    }
+  }
+
+  drawTexts(0)
+  if (isDuplicated) drawTexts(sw)
+
+  return canvas
+}
+
+export const DownloadButton = ({ variant = 'sidebar' }: Props) => {
   const frameType = useEditorStore((s) => s.frameType)
+  const backgroundColor = useEditorStore((s) => s.backgroundColor)
+  const frameFilter = useEditorStore((s) => s.frameFilter)
+  const slots = useEditorStore((s) => s.slots)
+  const texts = useEditorStore((s) => s.texts)
+  const stickers = useEditorStore((s) => s.stickers)
   const setSelectedTextId = useEditorStore((s) => s.actions.setSelectedTextId)
   const setSelectedStickerId = useEditorStore((s) => s.actions.setSelectedStickerId)
   const [loading, setLoading] = useState(false)
 
-  const { width: sw, height: sh } = STRIP_DIMENSIONS[frameType]
-  const isDuplicated = FRAME_DUPLICATES[frameType] === 2
-
   const handleDownload = async () => {
-    if (!canvasRef.current || loading) return
+    if (loading) return
     setLoading(true)
-
     setSelectedTextId(null)
     setSelectedStickerId(null)
-    await waitFrames(4)
 
     try {
-      const fontEmbedCSS = await loadFontEmbedCSS()
-      let output: HTMLCanvasElement
-
-      if (isDuplicated && rightCanvasRef?.current) {
-        // 순차 캡처 — DOM 동시 수정 충돌 방지
-        const leftCanvas = await prepareAndCapture(canvasRef.current, sw, sh, fontEmbedCSS)
-        const rightCanvas = await prepareAndCapture(rightCanvasRef.current, sw, sh, fontEmbedCSS)
-        output = document.createElement('canvas')
-        output.width = sw * 2
-        output.height = sh
-        const ctx = output.getContext('2d')!
-        ctx.drawImage(leftCanvas, 0, 0)
-        ctx.drawImage(rightCanvas, sw, 0)
-      } else {
-        output = await prepareAndCapture(canvasRef.current, sw, sh, fontEmbedCSS)
-      }
+      const output = await renderToCanvas(
+        frameType, backgroundColor, frameFilter, slots, stickers, texts,
+      )
 
       await new Promise<void>((resolve) => {
         output.toBlob((blob) => {
