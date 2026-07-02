@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 컷꾸 (Cut kku)
 
-## Getting Started
+사진에 스티커·텍스트·필터를 더해 나만의 인생네컷을 만들고 PNG로 다운로드할 수 있는 정적 웹 서비스입니다.
 
-First, run the development server:
+🔗 **[cut-kku.vercel.app](https://cut-kku.vercel.app)**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 주요 기능
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **프레임 타입** — 4컷 세로(A) · 3컷 정방형(B) · 4컷 2×2(C) · 듀얼 스트립(A/B)
+- **사진 편집** — 슬롯별 이미지 업로드 · 흑백·웜톤·쿨톤 필터
+- **꾸미기** — 스티커 추가·드래그·회전·크기 조절 / 텍스트 추가·폰트·색상·이동
+- **배경색** — 프레임 배경 컬러 커스텀
+- **다운로드** — Canvas 2D API로 직접 렌더링 후 PNG 저장 (모바일 지원)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 기술 스택
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| 분류       | 사용 기술                              |
+| ---------- | -------------------------------------- |
+| 프레임워크 | Next.js 16 (App Router, Static Export) |
+| 언어       | TypeScript                             |
+| 스타일     | Tailwind CSS v4                        |
+| 상태관리   | Zustand 5                              |
+| 렌더링     | Canvas 2D API                          |
+| 배포       | Vercel                                 |
