@@ -33,7 +33,7 @@ const loadFontEmbedCSS = async (): Promise<string> => {
             reader.readAsDataURL(blob)
           })
           css = css.replace(fullMatch, `url(${base64})`)
-        } catch { /* 해당 폰트 파일 skip */ }
+        } catch { /* skip */ }
       })
     )
     fontEmbedCSSCache = css
@@ -43,17 +43,22 @@ const loadFontEmbedCSS = async (): Promise<string> => {
   }
 }
 
+// blob URL에는 crossOrigin 설정 금지 (모바일 Safari 로드 차단)
 const imgToDataUrl = (src: string): Promise<string> => {
   if (src.startsWith('data:')) return Promise.resolve(src)
   return new Promise((resolve) => {
     const img = new window.Image()
-    img.crossOrigin = 'anonymous'
+    if (!src.startsWith('blob:')) img.crossOrigin = 'anonymous'
     img.onload = () => {
-      const c = document.createElement('canvas')
-      c.width = img.naturalWidth
-      c.height = img.naturalHeight
-      c.getContext('2d')!.drawImage(img, 0, 0)
-      resolve(c.toDataURL('image/png'))
+      try {
+        const c = document.createElement('canvas')
+        c.width = img.naturalWidth
+        c.height = img.naturalHeight
+        c.getContext('2d')!.drawImage(img, 0, 0)
+        resolve(c.toDataURL('image/png'))
+      } catch {
+        resolve(src)
+      }
     }
     img.onerror = () => resolve(src)
     img.src = src
@@ -67,8 +72,13 @@ const waitFrames = (n: number): Promise<void> =>
     requestAnimationFrame(tick)
   })
 
-const prepareAndCapture = async (el: HTMLDivElement, sw: number, sh: number, fontEmbedCSS: string): Promise<HTMLCanvasElement> => {
-  // 1. blob/http 이미지 → dataURL 변환 후 로드 완료 대기
+const prepareAndCapture = async (
+  el: HTMLDivElement,
+  sw: number,
+  sh: number,
+  fontEmbedCSS: string,
+): Promise<HTMLCanvasElement> => {
+  // 1. 원본 요소의 img를 모두 dataURL로 변환 (blob URL 포함)
   const imgs = Array.from(el.querySelectorAll<HTMLImageElement>('img'))
   const origSrcs = imgs.map((img) => img.src)
 
@@ -80,39 +90,51 @@ const prepareAndCapture = async (el: HTMLDivElement, sw: number, sh: number, fon
       img.src = dataUrl
       if (!img.complete) {
         await new Promise<void>((r) => {
-          img.onload = () => r()
-          img.onerror = () => r()
+          const done = () => r()
+          img.onload = done
+          img.onerror = done
+          setTimeout(done, 3000) // 최대 3초 대기
         })
       }
     })
   )
 
-  // 2. 힌트 텍스트 숨기기
+  // 2. 힌트 숨기기
   const hints = Array.from(el.querySelectorAll<HTMLElement>('[data-download-hide]'))
   hints.forEach((h) => { h.style.visibility = 'hidden' })
 
-  // 3. transform 제거
-  const origTransform = el.style.transform
-  const origOrigin = el.style.transformOrigin
-  el.style.transform = 'none'
-  el.style.transformOrigin = 'top left'
+  // 3. 클론을 body에 position:fixed로 붙여 모바일 뷰포트 안에서 full-size 렌더링
+  //    (원본이 position:absolute + scale 상태면 모바일에서 클립되어 캡처 불완전)
+  const clone = el.cloneNode(true) as HTMLDivElement
+  Object.assign(clone.style, {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: `${sw}px`,
+    height: `${sh}px`,
+    transform: 'none',
+    transformOrigin: 'top left',
+    opacity: '0',
+    pointerEvents: 'none',
+    zIndex: '99999',
+    overflow: 'hidden',
+  })
+  document.body.appendChild(clone)
 
-  // 4. 모바일 렌더 반영 대기 (충분한 프레임 확보)
-  await waitFrames(6)
+  await waitFrames(8)
 
   let captured: HTMLCanvasElement
   try {
-    captured = await toCanvas(el, {
+    captured = await toCanvas(clone, {
       pixelRatio: 1,
       width: sw,
       height: sh,
       skipFonts: true,
       fontEmbedCSS,
-      cacheBust: true,
+      cacheBust: false,
     })
   } finally {
-    el.style.transform = origTransform
-    el.style.transformOrigin = origOrigin
+    document.body.removeChild(clone)
     imgs.forEach((img, i) => { if (origSrcs[i]) img.src = origSrcs[i] })
     hints.forEach((h) => { h.style.visibility = '' })
   }
@@ -134,7 +156,6 @@ export const DownloadButton = ({ canvasRef, rightCanvasRef, variant = 'sidebar' 
 
     setSelectedTextId(null)
     setSelectedStickerId(null)
-    // 선택 해제 후 UI 반영 대기
     await waitFrames(4)
 
     try {
@@ -142,7 +163,7 @@ export const DownloadButton = ({ canvasRef, rightCanvasRef, variant = 'sidebar' 
       let output: HTMLCanvasElement
 
       if (isDuplicated && rightCanvasRef?.current) {
-        // A/B: 순차 캡처 — DOM 동시 수정 충돌 방지
+        // 순차 캡처 — DOM 동시 수정 충돌 방지
         const leftCanvas = await prepareAndCapture(canvasRef.current, sw, sh, fontEmbedCSS)
         const rightCanvas = await prepareAndCapture(rightCanvasRef.current, sw, sh, fontEmbedCSS)
         output = document.createElement('canvas')
@@ -168,7 +189,7 @@ export const DownloadButton = ({ canvasRef, rightCanvasRef, variant = 'sidebar' 
           resolve()
         }, 'image/png')
       })
-      // 로딩 오버레이가 최소 2초 노출되도록 대기
+      // 로딩 오버레이 최소 2초 노출
       await new Promise((r) => setTimeout(r, 2000))
     } catch (err) {
       console.error('다운로드 실패:', err)
