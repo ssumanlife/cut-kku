@@ -37,6 +37,10 @@ const prepareAndCapture = async (el: HTMLDivElement, sw: number, sh: number): Pr
     })
   )
 
+  // 힌트 텍스트 숨기기
+  const hints = Array.from(el.querySelectorAll<HTMLElement>('[data-download-hide]'))
+  hints.forEach((h) => { h.style.visibility = 'hidden' })
+
   // transform 제거 후 캡처
   const origTransform = el.style.transform
   const origOrigin = el.style.transformOrigin
@@ -51,6 +55,7 @@ const prepareAndCapture = async (el: HTMLDivElement, sw: number, sh: number): Pr
     el.style.transform = origTransform
     el.style.transformOrigin = origOrigin
     imgs.forEach((img, i) => { if (origSrcs[i]) img.src = origSrcs[i] })
+    hints.forEach((h) => { h.style.visibility = '' })
   }
   return captured
 }

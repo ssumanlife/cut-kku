@@ -1,4 +1,5 @@
 export { DecoZone } from './deco-zone'
+export { FrameLogo } from './frame-logo'
 export { FrameTypeA } from './frame-type-a'
 export { FrameTypeB } from './frame-type-b'
 export { FrameTypeC } from './frame-type-c'

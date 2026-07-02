@@ -16,7 +16,7 @@ export const DecoZone = ({ style, backgroundColor }: DecoZoneProps) => (
       justifyContent: 'center',
     }}
   >
-    <span style={{ fontSize: 28, color: 'rgba(0,0,0,0.15)', letterSpacing: 2, userSelect: 'none' }}>
+    <span data-download-hide style={{ fontSize: 28, color: 'rgba(0,0,0,0.15)', letterSpacing: 2, userSelect: 'none' }}>
       ✦ 텍스트 · 스티커 영역 ✦
     </span>
   </div>
