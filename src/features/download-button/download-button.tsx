@@ -10,6 +10,39 @@ interface Props {
   variant?: 'sidebar' | 'mobile'
 }
 
+const GOOGLE_FONTS_URL =
+  'https://fonts.googleapis.com/css2?family=Nanum+Gothic&family=Nanum+Myeongjo&family=Do+Hyeon&family=Black+Han+Sans&display=swap'
+
+let fontEmbedCSSCache: string | null = null
+
+const loadFontEmbedCSS = async (): Promise<string> => {
+  if (fontEmbedCSSCache) return fontEmbedCSSCache
+  try {
+    const cssResp = await fetch(GOOGLE_FONTS_URL)
+    let css = await cssResp.text()
+    const urlMatches = [...css.matchAll(/url\(([^)]+)\)/g)]
+    await Promise.all(
+      urlMatches.map(async ([fullMatch, rawUrl]) => {
+        const url = rawUrl.replace(/['"]/g, '')
+        try {
+          const fontResp = await fetch(url)
+          const blob = await fontResp.blob()
+          const base64 = await new Promise<string>((r) => {
+            const reader = new FileReader()
+            reader.onload = () => r(reader.result as string)
+            reader.readAsDataURL(blob)
+          })
+          css = css.replace(fullMatch, `url(${base64})`)
+        } catch { /* 해당 폰트 파일 skip */ }
+      })
+    )
+    fontEmbedCSSCache = css
+    return css
+  } catch {
+    return ''
+  }
+}
+
 const imgToDataUrl = (src: string): Promise<string> => {
   if (src.startsWith('data:')) return Promise.resolve(src)
   return new Promise((resolve) => {
@@ -34,7 +67,7 @@ const waitFrames = (n: number): Promise<void> =>
     requestAnimationFrame(tick)
   })
 
-const prepareAndCapture = async (el: HTMLDivElement, sw: number, sh: number): Promise<HTMLCanvasElement> => {
+const prepareAndCapture = async (el: HTMLDivElement, sw: number, sh: number, fontEmbedCSS: string): Promise<HTMLCanvasElement> => {
   // 1. blob/http 이미지 → dataURL 변환 후 로드 완료 대기
   const imgs = Array.from(el.querySelectorAll<HTMLImageElement>('img'))
   const origSrcs = imgs.map((img) => img.src)
@@ -74,6 +107,7 @@ const prepareAndCapture = async (el: HTMLDivElement, sw: number, sh: number): Pr
       width: sw,
       height: sh,
       skipFonts: true,
+      fontEmbedCSS,
       cacheBust: true,
     })
   } finally {
@@ -104,12 +138,13 @@ export const DownloadButton = ({ canvasRef, rightCanvasRef, variant = 'sidebar' 
     await waitFrames(4)
 
     try {
+      const fontEmbedCSS = await loadFontEmbedCSS()
       let output: HTMLCanvasElement
 
       if (isDuplicated && rightCanvasRef?.current) {
         // A/B: 순차 캡처 — DOM 동시 수정 충돌 방지
-        const leftCanvas = await prepareAndCapture(canvasRef.current, sw, sh)
-        const rightCanvas = await prepareAndCapture(rightCanvasRef.current, sw, sh)
+        const leftCanvas = await prepareAndCapture(canvasRef.current, sw, sh, fontEmbedCSS)
+        const rightCanvas = await prepareAndCapture(rightCanvasRef.current, sw, sh, fontEmbedCSS)
         output = document.createElement('canvas')
         output.width = sw * 2
         output.height = sh
@@ -117,7 +152,7 @@ export const DownloadButton = ({ canvasRef, rightCanvasRef, variant = 'sidebar' 
         ctx.drawImage(leftCanvas, 0, 0)
         ctx.drawImage(rightCanvas, sw, 0)
       } else {
-        output = await prepareAndCapture(canvasRef.current, sw, sh)
+        output = await prepareAndCapture(canvasRef.current, sw, sh, fontEmbedCSS)
       }
 
       await new Promise<void>((resolve) => {
