@@ -31,7 +31,7 @@ const loadImg = (src: string): Promise<HTMLImageElement | null> =>
   new Promise((resolve) => {
     if (!src) { resolve(null); return }
     const img = new window.Image()
-    if (!src.startsWith('blob:')) img.crossOrigin = 'anonymous'
+    if (src.startsWith('http://') || src.startsWith('https://')) img.crossOrigin = 'anonymous'
     img.onload = () => resolve(img)
     img.onerror = () => resolve(null)
     setTimeout(() => resolve(null), 8000)
@@ -133,12 +133,7 @@ const renderToCanvas = async (
   // 스티커 이미지 로드 (병렬)
   const stickerImgs = await Promise.all(stickers.map((s) => loadImg(s.src)))
 
-  // 텍스트 폰트 사전 로드
-  await Promise.all(
-    texts.map((t) =>
-      document.fonts.load(`${t.fontSize}px "${t.font}"`).catch(() => null)
-    )
-  )
+  await document.fonts.ready
 
   const drawStrip = (offsetX: number) => {
     // 1. 배경
@@ -181,7 +176,7 @@ const renderToCanvas = async (
   const drawTexts = (offsetX: number) => {
     for (const t of texts) {
       ctx.save()
-      ctx.font = `${t.fontSize}px "${t.font}", sans-serif`
+      ctx.font = `${t.fontSize}px ${t.font}`
       ctx.fillStyle = t.color
       ctx.textBaseline = 'top'
       ctx.fillText(t.content, offsetX + t.x, t.y)
